@@ -1,0 +1,217 @@
+
+set Dimension                              = 3
+set Use years in output instead of seconds = true
+set Maximum time step    		   = 10000
+subsection Termination criteria
+   set Termination criteria                   = end step
+   set End step                               = 1
+end
+set Resume computation                     = auto
+
+set Output directory                       = outputs/double-FINAL_5e19c1e20m500l_lightOP-freeside_WeakZoneTest/
+set World builder file                     = /work2/04714/adamholt/stampede3/aspect_work/Zonglin-models/wb_files/Jan14/Jan_14th_double-slab_correctdip_extendedwkzone.wb
+
+# non-linear stuff
+set Nonlinear solver scheme                = single Advection, iterated Stokes
+set Nonlinear solver tolerance             = 1.0e-3
+set Max nonlinear iterations               = 500
+set CFL number                             = 0.5
+
+subsection Solver parameters
+  subsection Stokes solver parameters
+    set Number of cheap Stokes solver steps = 2000
+    set Linear solver tolerance = 1e-4
+    set Use full A block as preconditioner = true
+    set GMRES solver restart length = 150
+  end
+  subsection Newton solver parameters
+    set Maximum linear Stokes solver tolerance = 1e-4
+    set Use Eisenstat Walker method for Picard iterations = true
+  end
+  subsection Advection solver parameters
+    set GMRES solver restart length = 100
+  end
+  set Temperature solver tolerance        = 1e-7
+  set Composition solver tolerance        = 1e-7
+end
+
+# discretization
+subsection Discretization
+  set Temperature polynomial degree       = 1
+  set Use discontinuous composition discretization = true
+  subsection Stabilization parameters
+    set Use limiter for discontinuous composition solution = true
+    set Global composition maximum = 1, 1, 1, 1, 1, 1, 1, 1, 1
+    set Global composition minimum = 0, 0, 0, 0, 0, 0, 0, 0, 0
+  end
+end
+
+
+### GEOMETRY AND MESH
+subsection Geometry model
+  set Model name = box
+  subsection Box
+    set X repetitions = 8
+    set Y repetitions = 5
+    set Z repetitions = 1
+    set X extent = 8000e3
+    set Y extent = 5000e3
+    set Z extent = 1000e3
+  end
+end
+
+subsection Mesh refinement
+  set Initial global refinement                   = 2
+  set Initial adaptive refinement                 = 5
+  set Time steps between mesh refinement          = 5
+  set Refinement fraction                         = 0.5
+  set Coarsening fraction                         = 0.2
+  set Strategy                                    = viscosity, composition threshold, minimum refinement function
+  set Refinement criteria scaling factors         = 1, 1, 1
+  set Refinement criteria merge operation      = max
+  set Run postprocessors on initial refinement    = false
+
+  subsection Composition threshold
+    set Compositional field thresholds            = 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01
+  end
+
+  subsection Minimum refinement function
+    set Coordinate system   = cartesian
+    set Variable names      = x, y, z
+    set Function constants  = zmax=1000e3
+    set Function expression = if(z>(zmax-670.e3), 3, 1)
+  end
+end
+
+
+#---- initial temp and comp fields ---
+##***** input a constant T = 1573 K (so that it doesn't have an effect!) *******##
+subsection Initial temperature model
+   set Model name = function
+   subsection Function
+     set Function expression = 1573
+   end
+end
+
+subsection Compositional fields
+   set Number of fields = 9
+   set Names of fields  = sp_crust, sp_litho, or, newsp_crust, newsp_litho, weakzone, sp_chunk, or_crust, op_chunk
+end
+
+subsection Initial composition model
+  set Model name = world builder
+end
+#-------------------------------------
+
+#------- boundary conditions -------------
+subsection Boundary velocity model
+  set Tangential velocity boundary indicators =  right, front, back,  bottom, top, left
+end
+
+subsection Boundary temperature model
+  set Fixed temperature boundary indicators = left, right, front, back,  bottom, top
+  set List of model names = box
+  subsection Box
+    set Bottom temperature = 1573
+    set Top temperature    = 1573
+    set Left temperature   = 1573
+    set Right temperature  = 1573
+    set Front temperature  = 1573
+    set Back temperature   = 1573
+  end
+end
+
+subsection Boundary composition model
+  set Fixed composition boundary indicators   = right, front, back, bottom
+end
+#-------------------------------------
+
+
+#-------- material model -------------
+subsection Material model
+  set Model name = visco plastic
+
+  subsection Visco Plastic
+
+    # reference stuff
+    set Reference temperature =   1573
+    set Reference strain rate =   5e-15
+    # dislocation becomes inactive in the lower mantle for all fields.
+    set Phase transition depths           =   background: 660e3,   sp_crust: 100e3|660e3, sp_litho: 660e3,  or : 660e3, newsp_crust:100e3|660e3, newsp_litho:660e3, weakzone: 660e3, sp_chunk:660e3,  or_crust:100e3|660e3,	op_chunk:660e3
+    set Phase transition widths           =   background: 1e3,     sp_crust: 1e3|1e3,     sp_litho: 1e3,    or : 1e3,   newsp_crust: 1e3|1e3,    newsp_litho: 1e3,  weakzone: 1e3,   sp_chunk:1e3,    or_crust:1e3|1e3,		op_chunk:1e3
+    set Phase transition temperatures     =   background: 1573,    sp_crust: 1573|1573,   sp_litho: 1573,   or : 1573,  newsp_crust: 1573|1573,  newsp_litho: 1573, weakzone: 1573,  sp_chunk:1573,   or_crust:1573|1573,	op_chunk:1573
+    set Phase transition Clapeyron slopes =   background: 0,       sp_crust: 0|0,         sp_litho: 0,      or : 0,     newsp_crust: 0,          newsp_litho: 0,    weakzone: 0,     sp_chunk:0,      or_crust:0|0,		op_chunk:0
+
+
+    # Thermal parameters
+    set Thermal diffusivities  =   1e-6 # i.e., it doesn't diffuse
+
+    # Densities
+    set Densities              =   background: 3300|3300,   sp_crust: 3300|3300|3300, sp_litho: 3350|3350,  or: 3300|3300, newsp_crust: 3300|3300|3300, newsp_litho: 3350|3350, weakzone: 3300|3300, sp_chunk:3350|3350, or_crust: 3300|3300|3300, op_chunk:3300|3300
+ 
+    # Diffusion creep, mantle: 2e20 for both diffusion and dislocation, to calculate factors. the composite value would be 1e20
+    # with E, V, .. = 0; viscosity_diff = (0.5/prefactor)
+    set Viscous flow law            =   composite
+    set Viscosity averaging scheme  =   geometric
+    set Prefactors for diffusion creep = background: 2.5e-21|1e-22, sp_crust: 1.0e-100|2.5e-21|1.0e-100, sp_litho: 2.5e-21|1e-22, or:2.5e-21|1e-22, newsp_crust: 1.0e-100|2.5e-21|1.0e-100, newsp_litho:2.5e-21|1e-22, weakzone:2.5e-21|1e-22, sp_chunk: 2.5e-21|1e-22, or_crust: 1.0e-100|2.5e-21|1.0e-100, op_chunk: 2.5e-21|1e-22
+    set Stress exponents for diffusion creep	  = 1
+    set Grain size exponents for diffusion creep  = 0
+    set Activation energies for diffusion creep   = 0
+    set Activation volumes for diffusion creep    = 0
+
+    set Prefactors for dislocation creep = background: 4.419e-37|1e-100, sp_crust: 1.0e-100|4.419e-37|1.0e-100, sp_litho:4.419e-37|1e-100, or: 4.419e-37|1e-100, newsp_crust: 1.0e-100|4.419e-37|1.0e-100, newsp_litho:4.419e-37|1e-100, weakzone: 4.419e-37|1e-100, sp_chunk: 4.419e-37|1e-100, or_crust: 1.0e-100|4.419e-37|1.0e-100, op_chunk: 4.419e-37|1e-100
+    set Stress exponents for dislocation creep	  = 3.5
+    set Activation energies for dislocation creep   =0
+    set Activation volumes for dislocation creep    =0
+    # Viscosity cut offs
+    set Minimum viscosity   =   background: 2e18|2e18, sp_crust: 4.99e19|1.99e20|9.99e21, sp_litho: 4.99e22|4.99e22, or: 4.99e22|4.99e22,   newsp_crust:4.99e19|1.99e20|9.99e21,   newsp_litho:4.99e22|4.99e22, weakzone:2e18|2e18, sp_chunk:4.99e23|4.99e23, or_crust: 4.99e19|1.99e20|9.99e21,   op_chunk:4.99e23|4.99e23
+    set Maximum viscosity   =   background: 2e22|10e23, sp_crust: 5.01e19|2.01e20|10.01e21, sp_litho: 5.01e22|1.01e24, or: 5.01e22|1.01e23, newsp_crust:5.01e19|2.01e20|10.01e21,  newsp_litho:5.01e22|1.01e24, weakzone:2e22|10e23, sp_chunk:5.01e23|1.01e24, or_crust: 5.01e19|2.01e20|10.01e21, op_chunk:5.01e23|1.01e24
+
+    # Plasticity parameters 
+    set Yield mechanism             = drucker
+    set Cohesions                   = 1e15
+    set Angles of internal friction = 5
+    set Maximum yield stress        = 1e15
+
+  end
+end
+#-------------------------------------
+
+# --------- other stuff -------------
+# pressure normalization
+set Adiabatic surface temperature     = 1573
+set Pressure normalization            = surface
+set Surface pressure                  = 0
+
+subsection Gravity model
+  set Model name = vertical
+
+  subsection Vertical 
+    set Magnitude = 9.81
+  end
+end
+
+subsection Formulation
+  set Formulation = Boussinesq approximation
+end
+#-------------------------------------
+
+#--------- postprocessing ------------
+subsection Postprocess
+  set List of postprocessors = visualization
+
+  subsection Visualization
+    set List of output variables = viscosity, strain rate, shear stress, stress, principal stress, surface dynamic topography, maximum horizontal compressive stress
+    set Output format                 = vtu
+    set Time steps between graphical output = 1
+    set Interpolate output = true
+    set Point-wise stress and strain = true
+  end
+end
+#-------------------------------------
+
+#--------- checkpointing -------------
+subsection Checkpointing
+  set Steps between checkpoint = 1
+end
+#-------------------------------------
