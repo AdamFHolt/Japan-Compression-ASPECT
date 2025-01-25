@@ -2,9 +2,9 @@
 
 Contains the 3-D subduction models described in Gianni et al. (in review). All models were ran using ASPECT version 2.5.0. Folder contents:
 
-**input_files:**  Contains the 12 ASPECT input (.prm) files used in the study. These consist of 2 main models (single and double subduction) and 10 additional parameter tests (variable crust and slab strength).
+**input_files:**  Contains the 15 ASPECT input (.prm) files used in the study. These consist of 2 main models (single and double subduction) and 13 additional parameter tests (variable crust and slab strength).
 
-**input_geometries:** Contains the corresponding input geometries (.wb files created using the Geodynamic World Builder of Fraters et al. (2019).
+**input_geometries:** Contains the corresponding input geometries (.wb files created using the Geodynamic World Builder of Fraters et al., 2019).
 
 ## REFERENCES
 
